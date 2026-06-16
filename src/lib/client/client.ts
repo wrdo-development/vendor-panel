@@ -1,4 +1,10 @@
 import Medusa from '@medusajs/js-sdk';
+import {
+  emptyListFor,
+  getActiveSellerId,
+  rewriteVendorRoute,
+} from '../mercur-compat';
+export { ACTIVE_SELLER_KEY } from '../mercur-compat';
 
 export const backendUrl = __BACKEND_URL__ ?? '/';
 export const publishableApiKey = __PUBLISHABLE_API_KEY__ ?? '';
@@ -105,19 +111,34 @@ export const fetchQuery = async (
     }
     return acc;
   }, '');
-  const response = await fetch(`${backendUrl}${url}${params && `?${params}`}`, {
+  const activeSellerId = getActiveSellerId();
+  const rewrittenUrl = rewriteVendorRoute(url);
+  const response = await fetch(`${backendUrl}${rewrittenUrl}${params && `?${params}`}`, {
     method: method,
     headers: {
       authorization: `Bearer ${bearer}`,
       'Content-Type': 'application/json',
       'x-publishable-api-key': publishableApiKey,
+      // WRDO: required by ensureSellerMiddleware on /vendor/* routes
+      ...(activeSellerId ? { 'x-seller-id': activeSellerId } : {}),
       ...headers
     },
     body: body ? JSON.stringify(body) : null
   });
 
   if (!response.ok) {
-    const errorData = await response.json();
+    // WRDO: error bodies aren't always JSON. A 404 from a route this Mercur
+    // backend doesn't serve returns an HTML error page; calling .json() on it
+    // throws "Unexpected token '<'", which escapes uncaught and crashes the
+    // whole React tree (the dashboard error boundary). Parse defensively so a
+    // single dead widget degrades to an empty card instead of a page crash.
+    let errorData: { message?: string } = {};
+    const raw = await response.text();
+    try {
+      errorData = raw ? JSON.parse(raw) : {};
+    } catch {
+      errorData = { message: `${response.status} ${response.statusText}` };
+    }
 
     if (response.status === 401) {
       if (isTokenExpired(token)) {
@@ -130,6 +151,19 @@ export const fetchQuery = async (
         type: 'NO_PERMISSION',
         message: errorData.message || 'Unauthorized'
       };
+    }
+
+    // WRDO: a 404 on a GET means this Mercur backend doesn't serve the route the
+    // panel asked for (version drift — e.g. /vendor/me, /vendor/sellers/me/reviews,
+    // /vendor/notifications). For a read, degrade to an empty list-shaped result so
+    // the widget renders blank instead of throwing into React Router and crashing.
+    // List consumers (InfiniteList) flatMap over response[<key>] and read
+    // count/offset/limit — Medusa convention is the last path segment IS the key
+    // (/vendor/notifications -> "notifications"), so seed that key with []. Only
+    // GET + 404 is swallowed; mutations and real errors (5xx, 400, 403) still throw.
+    if (response.status === 404 && method === 'GET') {
+      // Use the ORIGINAL url for the response key (matches what the caller expects).
+      return emptyListFor(url);
     }
 
     const error = new Error(errorData.message || 'Server error');
