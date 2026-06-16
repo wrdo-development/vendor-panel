@@ -1,0 +1,14 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "wrdo-vendor-panel",
+  "compatibility_date": "2024-12-30",
+  // Custom domain vendor.wrdo.co.za is bound via the workers/domains API
+  // (the prd_infra CF token lacks zone workers/routes:Edit, which the inline
+  // `routes` custom_domain path requires — but workers/domains works). Keep
+  // the binding out of here so `wrangler deploy` doesn't 403 on the routes API.
+  "assets": {
+    "directory": "./dist",
+    // SPA: serve index.html for any unmatched route (client-side router)
+    "not_found_handling": "single-page-application"
+  }
+}
