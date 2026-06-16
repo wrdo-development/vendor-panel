@@ -1,45 +1,17 @@
 import { ChatBubble } from "@medusajs/icons"
-import { Drawer, Heading, IconButton } from "@medusajs/ui"
-import { Chatbox } from "@talkjs/react"
-import { useCallback, useState } from "react"
-import { useMe } from "../../../hooks/api"
-import Talk from "talkjs"
+import { Drawer, Heading, IconButton, Text } from "@medusajs/ui"
+import { useState } from "react"
 
+/**
+ * TalkJS removed (WRDO-177). Admin↔vendor chat moves to WRDO's conversation
+ * spine. Drawer + trigger kept; body is a placeholder until the WRDO widget
+ * slots in. (wrdo fork)
+ */
 export const AdminChat = () => {
   const [open, setOpen] = useState(false)
 
-  const { seller, isPending } = useMe()
-
-  if (isPending)
-    return <div className="flex justify-center items-center h-screen" />
-
-  const handleOnOpen = (shouldOpen: boolean) => {
-    if (shouldOpen) {
-      setOpen(true)
-    } else {
-      setOpen(false)
-    }
-  }
-
-  const syncConversation = useCallback((session: any) => {
-    const conversation = session.getOrCreateConversation(
-      `admin-vendor-${seller?.id}`
-    )
-
-    const other = new Talk.User({
-      id: "admin",
-      name: "Admin",
-      welcomeMessage: "Hey, how can I help?",
-    })
-
-    conversation.setParticipant(other)
-    conversation.setParticipant(session.me)
-
-    return conversation
-  }, [])
-
   return (
-    <Drawer open={open} onOpenChange={handleOnOpen}>
+    <Drawer open={open} onOpenChange={setOpen}>
       <Drawer.Trigger asChild>
         <IconButton
           variant="transparent"
@@ -54,12 +26,11 @@ export const AdminChat = () => {
             <Heading>Chat with admin</Heading>
           </Drawer.Title>
         </Drawer.Header>
-        <Drawer.Body className="overflow-y-auto px-4">
-          <Chatbox
-            syncConversation={syncConversation}
-            style={{ width: "100%", height: "100%" }}
-          />
-        </Drawer.Body>
+        <div className="flex flex-col items-center justify-center h-full px-6">
+          <Text className="text-ui-fg-subtle" size="small">
+            Chat is moving to WRDO — coming soon.
+          </Text>
+        </div>
       </Drawer.Content>
     </Drawer>
   )

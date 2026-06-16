@@ -15,7 +15,6 @@ import {
   Users
 } from '@medusajs/icons';
 import { clx, Divider, Text } from '@medusajs/ui';
-import { useUnreads } from '@talkjs/react';
 import { Collapsible as RadixCollapsible } from 'radix-ui';
 import { useTranslation } from 'react-i18next';
 import { useLocation } from 'react-router-dom';
@@ -104,7 +103,8 @@ const Header = () => {
 const useCoreRoutes = (): Omit<INavItem, 'pathname'>[] => {
   const { t } = useTranslation();
 
-  const unreadMessages = useUnreads();
+  // TalkJS removed (WRDO-177) — unread count returns with the WRDO spine.
+  const unreadMessages: unknown[] = [];
 
   return [
     {

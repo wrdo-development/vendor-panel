@@ -23,7 +23,6 @@ import { ChartSkeleton } from "./chart-skeleton"
 import { useState } from "react"
 import { addDays, differenceInDays, format, subDays } from "date-fns"
 import { Calendar } from "../../../components/common/calendar/calendar"
-import { useUnreads } from "@talkjs/react"
 
 const colorPicker = (line: string) => {
   switch (line) {
@@ -95,7 +94,8 @@ export const DashboardCharts = ({
 
   const [filters, setFilters] = useState(["customers", "orders"])
 
-  const unreadMessages = useUnreads()
+  // TalkJS removed (WRDO-177) — unread count returns with the WRDO spine.
+  const unreadMessages: unknown[] = []
 
   const from = (searchParams.get("from") ||
     format(addDays(new Date(), -7), "yyyy-MM-dd")) as unknown as Date
