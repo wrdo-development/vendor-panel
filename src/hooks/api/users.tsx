@@ -8,6 +8,7 @@ import {
   useQuery,
 } from "@tanstack/react-query"
 import { fetchQuery } from "../../lib/client"
+import { reshapeMe } from "../../lib/mercur-compat"
 import { queryClient } from "../../lib/query-client"
 import { queryKeysFactory } from "../../lib/query-key-factory"
 import { StoreVendor, TeamMemberProps } from "../../types/user"
@@ -122,11 +123,16 @@ export const useUserMe = (
   >
 ) => {
   const { data, ...rest } = useQuery({
-    queryFn: () =>
-      fetchQuery(`/vendor/me`, {
+    // WRDO: /vendor/me is rewritten to /vendor/members/me centrally in fetchQuery
+    // (see mercur-compat). Reshape the { seller_member: { member } } response into
+    // the { member, ...member } shape the user-menu/footer expects.
+    queryFn: async () => {
+      const res = await fetchQuery(`/vendor/me`, {
         method: "GET",
         query: query as { [key: string]: string | number },
-      }),
+      })
+      return reshapeMe(res)
+    },
     queryKey: [USERS_QUERY_KEY, "user", "me"],
     ...options,
   })
